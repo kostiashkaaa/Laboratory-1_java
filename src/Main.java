@@ -27,12 +27,12 @@ public class Main {
         System.out.println("  2 — автоматический (ходы идут сами с небольшой паузой)");
         System.out.println("  3 — мгновенный (без вывода промежуточных ходов, сразу итог)");
         System.out.print("> ");
-        String choice = scanner.nextLine().trim();
+        String choice = readLine(scanner);
         boolean stepByStep = choice.equals("1");
         boolean instant = choice.equals("3");
 
         System.out.print("Максимальное число ходов (Enter — 500 по умолчанию): ");
-        String stepsInput = scanner.nextLine().trim();
+        String stepsInput = readLine(scanner);
         int maxSteps = 500;
         if (!stepsInput.isEmpty()) {
             try {
@@ -46,7 +46,12 @@ public class Main {
         if (instant) {
             sim.runInstant(maxSteps);
         } else {
-            sim.run(maxSteps, stepByStep);
+            sim.run(maxSteps, stepByStep, scanner);
         }
+    }
+
+    /** Чтение строки; при конце ввода (Ctrl+D) возвращает пустую строку. */
+    private static String readLine(Scanner scanner) {
+        return scanner.hasNextLine() ? scanner.nextLine().trim() : "";
     }
 }

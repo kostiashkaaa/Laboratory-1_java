@@ -7,19 +7,18 @@ import java.util.List;
  *   ЕСЛИ видит травоядное -> идти к нему и атаковать
  *   ИНАЧЕ                  -> блуждать случайно
  *
+ * Атака происходит, когда травоядное находится в соседней клетке по прямой
+ * (сверху, снизу, слева или справа): хищник съедает его и занимает клетку.
  * При достаточном запасе энергии хищник размножается так же, как остальные
  * агенты: часть энергии передаётся потомку в свободную соседнюю клетку.
  */
 public class Predator extends Agent {
 
     private static final double METABOLISM = 0.4;      // F2
-    private static final double MEAT_ENERGY = 40;       // E2 от травоядного
-    private static final double REPRO_THRESHOLD = 500;  // Xthreshold
-    private static final double CHILD_ENERGY = 150;
+    private static final double MEAT_ENERGY = 80;       // E2 от травоядного
+    private static final double REPRO_THRESHOLD = 850;  // Xthreshold
+    private static final double CHILD_ENERGY = 244;
     private static final int VISION_RADIUS = 2;         // область видимости 5x5
-    private static final int HUNT_SPEED = 1;            // один шаг за ход
-    private static final double SPRINT_CHANCE = 0.25;   // не каждый ход хищник успевает на "рывок"
-    private static final double CAPTURE_CHANCE = 0.05;  // атака рядом не всегда успешна
     private final double reproductionThreshold;
     private final double childEnergy;
 
@@ -40,22 +39,30 @@ public class Predator extends Agent {
         metabolize();
         if (!alive) return;
 
-        // Хищник при преследовании иногда успевает на дополнительный "рывок" —
-        // это даёт ему шанс догнать травоядное, которое убегает с обычной
-        // скоростью (при равной скорости и 100%-й защите побег был бы всегда успешен).
-        boolean attacked = false;
-        for (int i = 0; i < HUNT_SPEED && alive && !attacked; i++) {
-            if (i > 0 && rnd.nextDouble() > SPRINT_CHANCE) break;
+        if (!attackAdjacentHerbivore()) {
             List<int[]> vision = env.getNeighbors(x, y, VISION_RADIUS);
             int[] preyCell = findNearest(vision, Herbivore.class);
             if (preyCell != null) {
-                attacked = moveTowardOrAttack(preyCell);
+                moveToward(preyCell);
             } else {
                 wander();
-                break;
             }
         }
         tryReproduce();
+    }
+
+    /** Атака травоядного в соседней клетке по прямой. Возвращает true, если атака состоялась. */
+    private boolean attackAdjacentHerbivore() {
+        List<int[]> adjacent = env.getCardinalNeighbors(x, y);
+        Collections.shuffle(adjacent, rnd);
+        for (int[] cell : adjacent) {
+            Agent occupant = env.getAgent(cell[0], cell[1]);
+            if (occupant instanceof Herbivore) {
+                attack((Herbivore) occupant, cell[0], cell[1]);
+                return true;
+            }
+        }
+        return false;
     }
 
     private int[] findNearest(List<int[]> cells, Class<? extends Agent> type) {
@@ -74,65 +81,29 @@ public class Predator extends Agent {
         return best;
     }
 
-    /** Движение к травоядному по прямой; если оно оказалось в соседней клетке — атаковать. Возвращает true при успешной атаке. */
-    private boolean moveTowardOrAttack(int[] target) {
-        // Сначала проверяем все соседние клетки: цель может быть не в
-        // выбранном направлении, особенно если несколько агентов окружили
-        // хищника.
-        List<int[]> adjacent = env.getNeighbors(x, y, 1);
-        for (int[] cell : adjacent) {
-            Agent occupant = env.getAgent(cell[0], cell[1]);
-            if (occupant instanceof Herbivore
-                    && rnd.nextDouble() < CAPTURE_CHANCE) {
-                attack((Herbivore) occupant, cell[0], cell[1]);
-                return true;
-            }
-        }
-
+    /** Шаг к травоядному по прямой (без диагоналей). */
+    private void moveToward(int[] target) {
         int[] direction = cardinalDirection(target[0], target[1], false);
         int preferredX = x + direction[0];
         int preferredY = y + direction[1];
         if (env.isEmpty(preferredX, preferredY)) {
             moveTo(preferredX, preferredY);
-            return false;
-        }
-        if (env.getAgent(preferredX, preferredY) instanceof Plant) {
-            moveThroughPlant(preferredX, preferredY);
-            return false;
-        }
-
-        // Прямой путь может быть занят растением или другим хищником.
-        // Выбираем свободную соседнюю клетку, которая всё равно приближает
-        // хищника к найденной жертве, вместо случайного блуждания.
-        int currentDistance = env.distance(x, y, target[0], target[1]);
-        List<int[]> candidates = env.getNeighbors(x, y, 1);
-        Collections.shuffle(candidates, rnd);
-        for (int[] cell : candidates) {
-            if (env.distance(cell[0], cell[1], target[0], target[1])
-                    < currentDistance
-                    && (env.isEmpty(cell[0], cell[1])
-                    || env.getAgent(cell[0], cell[1]) instanceof Plant)) {
-                if (env.getAgent(cell[0], cell[1]) instanceof Plant) {
-                    moveThroughPlant(cell[0], cell[1]);
-                } else {
-                    moveTo(cell[0], cell[1]);
-                }
-                break;
-            }
-        }
-        return false;
-    }
-
-    private void moveThroughPlant(int nx, int ny) {
-        Agent occupant = env.getAgent(nx, ny);
-        if (!(occupant instanceof Plant) || !env.isInside(nx, ny)) {
             return;
         }
-        occupant.die();
-        env.setAgent(x, y, null);
-        x = nx;
-        y = ny;
-        env.setAgent(x, y, this);
+
+        // Прямой путь занят (растением или другим хищником) — выбираем
+        // другую свободную соседнюю клетку по прямой, которая всё равно
+        // приближает хищника к жертве. Если такой нет — остаёмся на месте.
+        int currentDistance = env.distance(x, y, target[0], target[1]);
+        List<int[]> candidates = env.getCardinalNeighbors(x, y);
+        Collections.shuffle(candidates, rnd);
+        for (int[] cell : candidates) {
+            if (env.isEmpty(cell[0], cell[1])
+                    && env.distance(cell[0], cell[1], target[0], target[1]) < currentDistance) {
+                moveTo(cell[0], cell[1]);
+                return;
+            }
+        }
     }
 
     private void attack(Herbivore prey, int px, int py) {

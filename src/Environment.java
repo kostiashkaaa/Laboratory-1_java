@@ -67,6 +67,18 @@ public class Environment {
         return result;
     }
 
+    /** Соседние клетки по прямой (сверху, снизу, слева, справа) в пределах поля. */
+    public List<int[]> getCardinalNeighbors(int x, int y) {
+        List<int[]> result = new ArrayList<>();
+        int[][] dirs = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+        for (int[] d : dirs) {
+            if (isInside(x + d[0], y + d[1])) {
+                result.add(new int[]{x + d[0], y + d[1]});
+            }
+        }
+        return result;
+    }
+
     /** Возвращает случайную свободную клетку среди непосредственных соседей (для размножения/движения). */
     public int[] getFreeNeighbor(int x, int y) {
         List<int[]> neighbors = getNeighbors(x, y, 1);

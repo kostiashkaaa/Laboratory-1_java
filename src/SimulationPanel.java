@@ -18,6 +18,11 @@ public class SimulationPanel extends JPanel {
     private static final Color PLANT_MARKER = new Color(46, 160, 67, 45);
     private static final Color HERBIVORE_MARKER = new Color(245, 158, 11, 55);
     private static final Color PREDATOR_MARKER = new Color(220, 38, 38, 55);
+    private static final Color PLANT_SOLID = new Color(46, 160, 67);
+    private static final Color HERBIVORE_SOLID = new Color(245, 158, 11);
+    private static final Color PREDATOR_SOLID = new Color(220, 38, 38);
+    private static final int MIN_GRID_CELL = 4;
+    private static final int MIN_EMOJI_CELL = 10;
     private final Simulation simulation;
 
     public SimulationPanel(Simulation simulation) {
@@ -35,7 +40,9 @@ public class SimulationPanel extends JPanel {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int cellSize = Math.max(4, Math.min(
+            // Клетка подстраивается под панель, чтобы поле любого размера
+            // помещалось целиком (без обрезки краёв).
+            int cellSize = Math.max(1, Math.min(
                     getWidth() / simulation.getWidth(),
                     getHeight() / simulation.getHeight()));
             int gridWidth = cellSize * simulation.getWidth();
@@ -45,20 +52,32 @@ public class SimulationPanel extends JPanel {
 
             g.setColor(EMPTY_COLOR);
             g.fillRect(offsetX, offsetY, gridWidth, gridHeight);
-            g.setColor(GRID_COLOR);
-            for (int x = 0; x <= simulation.getWidth(); x++) {
-                int pixelX = offsetX + x * cellSize;
-                g.drawLine(pixelX, offsetY, pixelX, offsetY + gridHeight);
-            }
-            for (int y = 0; y <= simulation.getHeight(); y++) {
-                int pixelY = offsetY + y * cellSize;
-                g.drawLine(offsetX, pixelY, offsetX + gridWidth, pixelY);
+            // На очень мелких клетках линии сетки закрыли бы всё поле.
+            if (cellSize >= MIN_GRID_CELL) {
+                g.setColor(GRID_COLOR);
+                for (int x = 0; x <= simulation.getWidth(); x++) {
+                    int pixelX = offsetX + x * cellSize;
+                    g.drawLine(pixelX, offsetY, pixelX, offsetY + gridHeight);
+                }
+                for (int y = 0; y <= simulation.getHeight(); y++) {
+                    int pixelY = offsetY + y * cellSize;
+                    g.drawLine(offsetX, pixelY, offsetX + gridWidth, pixelY);
+                }
             }
 
             for (int y = 0; y < simulation.getHeight(); y++) {
                 for (int x = 0; x < simulation.getWidth(); x++) {
                     Agent agent = simulation.getAgent(x, y);
                     if (agent == null) {
+                        continue;
+                    }
+
+                    // Эмодзи в мелкой клетке не читается и вылезает за её
+                    // границы — рисуем сплошной цветной квадрат.
+                    if (cellSize < MIN_EMOJI_CELL) {
+                        g.setColor(solidColor(agent));
+                        g.fillRect(offsetX + x * cellSize, offsetY + y * cellSize,
+                                cellSize, cellSize);
                         continue;
                     }
 
@@ -85,6 +104,16 @@ public class SimulationPanel extends JPanel {
         } finally {
             g.dispose();
         }
+    }
+
+    private Color solidColor(Agent agent) {
+        if (agent instanceof Plant) {
+            return PLANT_SOLID;
+        }
+        if (agent instanceof Herbivore) {
+            return HERBIVORE_SOLID;
+        }
+        return PREDATOR_SOLID;
     }
 
     private Color markerColor(Agent agent) {

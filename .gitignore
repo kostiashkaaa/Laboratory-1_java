@@ -31,3 +31,5 @@ bin/
 
 ### Java ###
 *.class
+.idea/
+*.iml

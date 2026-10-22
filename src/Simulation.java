@@ -25,9 +25,9 @@ public class Simulation {
     // Условные итоговые параметры поля и начальной популяции
     private static final int WIDTH = 50;
     private static final int HEIGHT = 50;
-    private static final int INITIAL_PLANTS = 200;
-    private static final int INITIAL_HERBIVORES = 5;
-    private static final int INITIAL_PREDATORS = 1;
+    private static final int INITIAL_PLANTS = 998;
+    private static final int INITIAL_HERBIVORES = 79;
+    private static final int INITIAL_PREDATORS = 13;
 
     // Журнал критических событий с номером шага.
     private final List<String> eventLog = new ArrayList<>();
@@ -36,15 +36,15 @@ public class Simulation {
     private boolean predatorsExtinct = false;
 
     public Simulation() {
-        this(50, 50, 200, 5, 1, 10, 40, 400,
-                80, 1500, 500, 30, 500, 150);
+        this(WIDTH, HEIGHT, INITIAL_PLANTS, INITIAL_HERBIVORES, INITIAL_PREDATORS, 10, 43, 418,
+                39, 410, 850, 28, 93, 244);
     }
 
     public Simulation(int initialPlants, int initialHerbivores, int initialPredators,
                       double plantEnergy, double herbivoreEnergy, double predatorEnergy) {
         this(WIDTH, HEIGHT, initialPlants, initialHerbivores, initialPredators,
                 plantEnergy, herbivoreEnergy, predatorEnergy,
-                80, 1500, 500, 30, 500, 150);
+                39, 410, 850, 28, 93, 244);
     }
 
     public Simulation(int width, int height,
@@ -139,9 +139,10 @@ public class Simulation {
      * @param maxSteps    максимальное число ходов
      * @param stepByStep  true — пошаговый режим (Enter для продолжения),
      *                    false — автоматический режим с паузой между ходами
+     * @param scanner     источник ввода (тот же, что использовался для выбора
+     *                    режима, — второй Scanner на System.in теряет ввод)
      */
-    public void run(int maxSteps, boolean stepByStep) {
-        Scanner scanner = new Scanner(System.in);
+    public void run(int maxSteps, boolean stepByStep, Scanner scanner) {
         boolean collapsed = false;
         while (step < maxSteps) {
             collapsed = advanceOneStep();
@@ -154,6 +155,7 @@ public class Simulation {
 
             if (stepByStep) {
                 System.out.println("Enter — следующий шаг, q + Enter — выход.");
+                if (!scanner.hasNextLine()) break;
                 String line = scanner.nextLine();
                 if (line.trim().equalsIgnoreCase("q")) break;
             } else {

@@ -10,9 +10,9 @@ import java.util.List;
 public class Herbivore extends Agent {
 
     private static final double METABOLISM = 1.0;      // F
-    private static final double FOOD_ENERGY = 5;        // E1 от растения
-    private static final double REPRO_THRESHOLD = 250; // Hthreshold
-    private static final double CHILD_ENERGY = 100;
+    private static final double FOOD_ENERGY = 10;        // E1 от растения
+    private static final double REPRO_THRESHOLD = 410; // Hthreshold
+    private static final double CHILD_ENERGY = 93;
     private static final int VISION_RADIUS = 2;         // область видимости 5x5
     private final double reproductionThreshold;
     private final double childEnergy;
@@ -55,7 +55,7 @@ public class Herbivore extends Agent {
     }
 
     private boolean eatAdjacentPlant() {
-        List<int[]> adjacent = env.getNeighbors(x, y, 1);
+        List<int[]> adjacent = env.getCardinalNeighbors(x, y);
         for (int[] cell : adjacent) {
             Agent occupant = env.getAgent(cell[0], cell[1]);
             if (occupant instanceof Plant) {

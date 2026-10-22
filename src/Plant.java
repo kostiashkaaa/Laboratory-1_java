@@ -5,8 +5,8 @@
 public class Plant extends Agent {
 
     private static final double GROWTH = 1;              // +n энергии за шаг
-    private static final double REPRO_THRESHOLD = 80;    // Pthreshold
-    private static final double CHILD_ENERGY = 30;       // энергия ростка
+    private static final double REPRO_THRESHOLD = 39;    // Pthreshold
+    private static final double CHILD_ENERGY = 28;       // энергия ростка
     private static final double MAX_ENERGY = 100;        // ограничение накопления
     private final double reproductionThreshold;
     private final double childEnergy;
